@@ -223,18 +223,22 @@ function CompletedSection({ cards, category, onClick }) {
 function TaskRow({ task, category, onToggle, onComment }) {
   const dueStyle = getDueStyle(task.due);
   const hasComment = !!task.comment;
+  const isOverdue = !!task.isOverdue;
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 10px", borderRadius: 8, border: `1px solid ${hasComment ? "#FFC107" : "#F0EDE8"}`, background: task.done ? "#FAFAF8" : "#fff", position: "relative" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 10px", borderRadius: 8, border: `1px solid ${isOverdue ? "#E24B4A" : hasComment ? "#FFC107" : "#F0EDE8"}`, borderLeft: isOverdue ? "4px solid #E24B4A" : undefined, background: isOverdue ? "#FDF2F2" : task.done ? "#FAFAF8" : "#fff", position: "relative" }}>
       <div onClick={onToggle} style={{ display: "flex", alignItems: "flex-start", gap: 8, flex: 1, cursor: "pointer", minWidth: 0 }}
-        onMouseEnter={e => e.currentTarget.parentElement.style.background = "#F8F7F4"}
-        onMouseLeave={e => e.currentTarget.parentElement.style.background = task.done ? "#FAFAF8" : "#fff"}
+        onMouseEnter={e => e.currentTarget.parentElement.style.background = isOverdue ? "#FCE6E6" : "#F8F7F4"}
+        onMouseLeave={e => e.currentTarget.parentElement.style.background = isOverdue ? "#FDF2F2" : task.done ? "#FAFAF8" : "#fff"}
       >
         <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1, border: task.done ? "none" : "1.5px solid #D3D1C7", background: task.done ? category.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {task.done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: task.done ? "#B4B2A9" : "#1a1a1a", textDecoration: task.done ? "line-through" : "none", lineHeight: 1.4 }}>{task.name}</div>
-          {dueStyle && <span style={{ display: "inline-block", fontSize: 10, marginTop: 3, padding: "1px 6px", borderRadius: 99, background: dueStyle.bg, color: dueStyle.color }}>📅 {dueStyle.text}</span>}
+          <div style={{ fontSize: 12, color: task.done ? "#B4B2A9" : "#1a1a1a", textDecoration: task.done ? "line-through" : "none", lineHeight: 1.4, fontWeight: isOverdue ? 700 : 400 }}>{isOverdue && "⚠️ "}{task.name}</div>
+          {isOverdue
+            ? <span style={{ display: "inline-block", fontSize: 10, marginTop: 3, padding: "1px 6px", borderRadius: 99, background: "#E24B4A", color: "#fff", fontWeight: 600 }}>期日超過：{task.due}</span>
+            : (dueStyle && <span style={{ display: "inline-block", fontSize: 10, marginTop: 3, padding: "1px 6px", borderRadius: 99, background: dueStyle.bg, color: dueStyle.color }}>📅 {dueStyle.text}</span>)
+          }
           {hasComment && <div style={{ fontSize: 11, color: "#B8860B", marginTop: 4, padding: "3px 8px", background: "#FFF9E6", borderRadius: 6, borderLeft: "3px solid #FFC107" }}>💬 {task.comment}</div>}
         </div>
       </div>
@@ -276,7 +280,8 @@ function CommentModal({ taskName, comment, onClose, onSave }) {
 }
 
 function AssigneeGroup({ assignee, tasks, category, onToggleTask, onCommentTask, filterAssignee }) {
-  const [open, setOpen] = useState(false);
+  const hasOverdue = tasks.some(t => t.isOverdue);
+  const [open, setOpen] = useState(hasOverdue);
   const done  = tasks.filter(t => t.done).length;
   const total = tasks.length;
   const pct   = Math.round(done / total * 100);
@@ -285,12 +290,12 @@ function AssigneeGroup({ assignee, tasks, category, onToggleTask, onCommentTask,
   return (
     <div style={{ marginBottom: 14 }}>
       <div onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, cursor: "pointer", background: "#F8F7F4", marginBottom: open ? 8 : 0 }}
-        onMouseEnter={e => e.currentTarget.style.background = "#F1EFE8"}
-        onMouseLeave={e => e.currentTarget.style.background = "#F8F7F4"}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, cursor: "pointer", background: hasOverdue ? "#FDF2F2" : "#F8F7F4", border: hasOverdue ? "1px solid #F3C8C7" : "1px solid transparent", marginBottom: open ? 8 : 0 }}
+        onMouseEnter={e => e.currentTarget.style.background = hasOverdue ? "#FCE6E6" : "#F1EFE8"}
+        onMouseLeave={e => e.currentTarget.style.background = hasOverdue ? "#FDF2F2" : "#F8F7F4"}
       >
         <div style={{ width: 26, height: 26, borderRadius: "50%", background: category.light, color: category.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(assignee)}</div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", flex: 1 }}>{assignee}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", flex: 1 }}>{hasOverdue && "⚠️ "}{assignee}</span>
         {filterAssignee
           ? <span style={{ fontSize: 11, color: "#E24B4A" }}>未着手 {displayTasks.length}件</span>
           : <span style={{ fontSize: 11, color: pct === 100 ? "#1D9E75" : "#888" }}>{done}/{total}</span>
@@ -361,6 +366,7 @@ function DetailPanel({ card, category, onClose, onToggleTask, onEdit, filterAssi
   const status   = getStatusLabel(card.progress, card.isOverdue, card.daysLeft);
   const groups   = groupTasksByAssignee(card.tasks || []);
   const dates    = getCardDateInfo(card, category.key).filter(d => d.value);
+  const overdueTasks = (card.tasks || []).filter(t => t.isOverdue);
   const [commentModal, setCommentModal] = useState(null);
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
@@ -396,7 +402,9 @@ function DetailPanel({ card, category, onClose, onToggleTask, onEdit, filterAssi
           {card.status     && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#F1EFE8", color: "#444" }}>{card.status}</span>}
           <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: status.bg, color: status.color, fontWeight: 500 }}>{status.label}</span>
           {card.overdueTaskCount > 0 && (
-            <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#FCEBEB", color: "#E24B4A", fontWeight: 600 }}>期日超過タスク {card.overdueTaskCount}件</span>
+            <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#FCEBEB", color: "#E24B4A", fontWeight: 600 }}>
+              ⚠️ 期日超過：{overdueTasks.map(t => t.name).join("、")}
+            </span>
           )}
           {category.key === "NYUSHA" && (
             <>
