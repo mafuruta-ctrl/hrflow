@@ -529,7 +529,10 @@ export default function App() {
   const handleSaveEdit = async (updatedCard) => {
     if (!editCard || !editCat) return;
     try {
-      await postToGAS({ action: "updateCard", sheet: editCat.key, rowIndex: editCard.rowIndex, data: updatedCard });
+      // tasks(最大数十件のタスク明細)を含めるとURLが長大になりGASへのリクエストが失敗するため、
+      // 送信データからは除外する(GAS側のupdateCardDataもtasksは参照していない)
+      const { tasks: _tasks, ...cardFields } = updatedCard;
+      await postToGAS({ action: "updateCard", sheet: editCat.key, rowIndex: editCard.rowIndex, data: cardFields });
       setCards(prev => {
         const next = { ...prev };
         next[editCat.key] = prev[editCat.key].map(c => c.rowIndex === editCard.rowIndex ? { ...c, ...updatedCard } : c);
