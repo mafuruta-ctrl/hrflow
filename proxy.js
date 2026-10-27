@@ -65,6 +65,12 @@ if (process.env.VERCEL !== '1') {
 return NextResponse.next()
 }
 
+    // 診断用: 自分の接続元IPアドレスを確認するための特別なパス。IP制限の対象外とする。
+    if (request.nextUrl.pathname === '/ip-check') {
+          const clientIp = getClientIp(request) || '(取得できませんでした)'
+          return new NextResponse('あなたの接続元IPアドレス: ' + clientIp + '\n', { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+    }
+
 const allowedEntries = parseAllowedIps(process.env.ALLOWED_IPS)
 
 // ALLOWED_IPS が未設定/空の場合は設定ミスとみなし、安全側に倒して全拒否する。
