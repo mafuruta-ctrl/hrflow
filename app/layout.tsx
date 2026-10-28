@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   },
 };
 
+// IP制限(proxy.js)が静的キャッシュでスキップされないよう、このルート配下を常に動的レンダリングにする
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
